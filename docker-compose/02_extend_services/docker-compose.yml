@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  web:
+    image: postgres:latest
+    depends_on:
+      - db
+      - cache
+
+  db:
+    image: postgres:latest
+
+  cache:
+    image: redis:latest

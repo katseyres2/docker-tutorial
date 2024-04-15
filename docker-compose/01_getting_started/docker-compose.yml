@@ -1,0 +1,57 @@
+version: "3.9"
+services:
+  web:
+    env_file:
+      - envs/.env.dev
+    environment:
+      #  same as 'docker run -e DEBUG=1'
+      - DEBUG=1
+      #  same as 'docker run -e PRODUCTION'
+      - PRODUCTION
+      # set Flask in development mode
+      - FLASK_ENV=development
+      - COMPOSE_API_VERSION
+    build: .
+    ports:
+      - "8000:5000"
+    # allow you to modify the code on the fly, without having to rebuild the image
+    volumes:
+      - .:/code
+
+  redis:
+    image: "redis:alpine"
+
+  # it does not have profile thus service is always enabled
+  db:
+    env_file:
+      - envs/.env.prod
+    # -  : default if POSTGRES_VERSION is unset
+    # :- : default if POSTGRES_VERSION is unset or empty
+    # ?  : error   if POSTGRES_VERSION is unset
+    # :? : error   if POSTGRES_VERSION is unset or empty
+    image: "postgres:${POSTGRES_VERSION:-default}"
+
+  frontend:
+    image: frontend
+    profiles: ["frontend"]
+
+  db-migrations:
+    image: alpine
+    command: echo "hello db-migrations"
+    depends_on:
+      - db
+    profiles:
+      - tools
+
+  phpmyadmin:
+    image: phpmyadmin
+    # needs db service to run phpmyadmin service
+    depends_on:
+      - db
+      # phpmyadmin requires db-migrations profile(s)
+      - db-migrations
+    # profile pattern : [a-zA-Z0-9][a-zA-Z0-9_.-]+
+    # 'docker compose up -d' will not run phpmyadmin such the profile is not mentionned
+    profiles:
+      - debug
+      - tools
